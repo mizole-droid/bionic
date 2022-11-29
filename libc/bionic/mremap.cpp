@@ -33,13 +33,12 @@
 #include <unistd.h>
 
 #include "platform/bionic/macros.h"
-#include "platform/bionic/page.h"
 
 extern "C" void* __mremap(void*, size_t, size_t, int, void*);
 
 void* mremap(void* old_address, size_t old_size, size_t new_size, int flags, ...) {
   // prevent allocations large enough for `end - start` to overflow
-  size_t rounded = __BIONIC_ALIGN(new_size, page_size());
+  size_t rounded = __BIONIC_ALIGN(new_size, PAGE_SIZE);
   if (rounded < new_size || rounded > PTRDIFF_MAX) {
     errno = ENOMEM;
     return MAP_FAILED;

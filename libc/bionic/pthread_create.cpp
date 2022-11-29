@@ -45,7 +45,6 @@
 #include "private/bionic_defs.h"
 #include "private/bionic_globals.h"
 #include "platform/bionic/macros.h"
-#include "platform/bionic/page.h"
 #include "private/bionic_ssp.h"
 #include "private/bionic_systrace.h"
 #include "private/bionic_tls.h"
@@ -71,7 +70,7 @@ void __init_bionic_tls_ptrs(bionic_tcb* tcb, bionic_tls* tls) {
 // Allocate a temporary bionic_tls that the dynamic linker's main thread can
 // use while it's loading the initial set of ELF modules.
 bionic_tls* __allocate_temp_bionic_tls() {
-  size_t allocation_size = __BIONIC_ALIGN(sizeof(bionic_tls), page_size());
+  size_t allocation_size = __BIONIC_ALIGN(sizeof(bionic_tls), PAGE_SIZE);
   void* allocation = mmap(nullptr, allocation_size,
                           PROT_READ | PROT_WRITE,
                           MAP_PRIVATE | MAP_ANONYMOUS,
@@ -84,7 +83,7 @@ bionic_tls* __allocate_temp_bionic_tls() {
 }
 
 void __free_temp_bionic_tls(bionic_tls* tls) {
-  munmap(tls, __BIONIC_ALIGN(sizeof(bionic_tls), page_size()));
+  munmap(tls, __BIONIC_ALIGN(sizeof(bionic_tls), PAGE_SIZE));
 }
 
 static void __init_alternate_signal_stack(pthread_internal_t* thread) {
@@ -198,7 +197,7 @@ int __init_thread(pthread_internal_t* thread) {
 // optionally a stack. Static TLS includes ELF TLS segments and the bionic_tls
 // struct.
 //
-// The stack_guard_size must be a multiple of the page_size().
+// The stack_guard_size must be a multiple of the PAGE_SIZE.
 ThreadMapping __allocate_thread_mapping(size_t stack_size, size_t stack_guard_size) {
   const StaticTlsLayout& layout = __libc_shared_globals()->static_tls_layout;
 
@@ -210,7 +209,7 @@ ThreadMapping __allocate_thread_mapping(size_t stack_size, size_t stack_guard_si
 
   // Align the result to a page size.
   const size_t unaligned_size = mmap_size;
-  mmap_size = __BIONIC_ALIGN(mmap_size, page_size());
+  mmap_size = __BIONIC_ALIGN(mmap_size, PAGE_SIZE);
   if (mmap_size < unaligned_size) return {};
 
   // Create a new private anonymous map. Make the entire mapping PROT_NONE, then carve out a
@@ -254,9 +253,9 @@ static int __allocate_thread(pthread_attr_t* attr, bionic_tcb** tcbp, void** chi
   if (attr->stack_base == nullptr) {
     // The caller didn't provide a stack, so allocate one.
 
-    // Make sure the guard size is a multiple of page_size().
+    // Make sure the guard size is a multiple of PAGE_SIZE.
     const size_t unaligned_guard_size = attr->guard_size;
-    attr->guard_size = __BIONIC_ALIGN(attr->guard_size, page_size());
+    attr->guard_size = __BIONIC_ALIGN(attr->guard_size, PAGE_SIZE);
     if (attr->guard_size < unaligned_guard_size) return EAGAIN;
 
     mapping = __allocate_thread_mapping(attr->stack_size, attr->guard_size);
